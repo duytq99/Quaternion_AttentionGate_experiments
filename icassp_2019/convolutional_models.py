@@ -117,5 +117,5 @@ class CAE(nn.Module):
         return "CAE"
 
 
-model = QCAE()
+model = A_QCAE()
 summary(model, input_size=(4,28,28))

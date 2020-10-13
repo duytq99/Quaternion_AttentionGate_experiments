@@ -1,6 +1,6 @@
 import torch
 from   torch                import nn
-from   convolutional_models import CAE, QCAE, QAE
+from   attention_model import A_QCAE
 
 
 import os
@@ -14,37 +14,38 @@ def rgb2gray(rgb):
     return np.repeat(gray[:, :, np.newaxis], 3, axis=2)
 
 
-MODEL         = str(sys.argv[1])
-CUDA          = True
-NUM_EPOCHS    = 3001
+# MODEL         = str(sys.argv[1])
+MODEL         = 'QCAE'
+CUDA          = False
+NUM_EPOCHS    = 1000
 LEARNING_RATE = 0.0005
 
 if MODEL == 'QCAE':
-    net  = QCAE()
-else:
-    net  = CAE()
+    net  = A_QCAE()
+# else:
+#     net  = CAE()
 
 if CUDA:
-    net = net.CUDA()
+    net = net.cuda()
 
 #
 # LOAD PICTURE
 #
 
-os.system('rm -rf data/save_image*')
-if not os.path.isdir('out'):
-    os.system('mkdir out')
+# os.system('rm -rf data/save_image*')
+# if not os.path.isdir('icassp_2019/out'):
+#     os.system('mkdir icassp_2019/out')
 
 criterion = nn.MSELoss()
 optimizer = torch.optim.Adam(net.parameters(), lr=LEARNING_RATE)
 
-train = rgb2gray(imread('data/kodak/kodim05.png'))
-imwrite("out/save_image_gray_training.png", train)
-imwrite("out/girl_image_gray_training.png", rgb2gray(imread('data/kodak/kodim04.png')))
-imwrite("out/parrot_image_gray_training.png",rgb2gray(imread('data/kodak/kodim23.png')))
+train = rgb2gray(imread('icassp_2019/data/kodak/kodim05.png'))
+imwrite("icassp_2019/out/save_image_gray_training.png", train)
+imwrite("icassp_2019/out/girl_image_gray_training.png", rgb2gray(imread('icassp_2019/data/kodak/kodim04.png')))
+imwrite("icassp_2019/out/parrot_image_gray_training.png",rgb2gray(imread('icassp_2019/data/kodak/kodim23.png')))
 train = train / 255
 
-test = imread('data/kodak/kodim04.png')
+test = imread('icassp_2019/data/kodak/kodim04.png')
 test = test / 255
 
 nb_param = sum(p.numel() for p in net.parameters() if p.requires_grad)
@@ -59,6 +60,7 @@ if MODEL == 'QCAE':
     train = np.transpose(train, (2,0,1))
     train = np.reshape(train, (1, train.shape[0], train.shape[1], train.shape[2]))
 
+    print(train.shape)
 
     test = np.pad(test, pad_width=npad, mode='constant', constant_values=0)
     test = np.transpose(test, (2,0,1))
@@ -72,13 +74,14 @@ else:
     test  = np.reshape(test, (1, test.shape[0], test.shape[1], test.shape[2]))
 
 if CUDA:
-    train = torch.from_numpy(train).float().CUDA()
-    test  = torch.from_numpy(test).float().CUDA()
+    train = torch.from_numpy(train).float().cuda()
+    test  = torch.from_numpy(test).float().cuda()
 else:
     train = torch.from_numpy(train).float()
     test  = torch.from_numpy(test).float()
 
 for epoch in range(NUM_EPOCHS):
+    print(train.shape)    
 
     output = net(train)
     loss   = criterion(output, train)
@@ -101,4 +104,4 @@ for epoch in range(NUM_EPOCHS):
             out = np.reshape(out, (out.shape[1], out.shape[2], out.shape[3]))
 
 
-        imwrite("out/save_image"+str(epoch)+".png", out)
+        imwrite("icassp_2019/out/save_image"+str(epoch)+".png", out)
