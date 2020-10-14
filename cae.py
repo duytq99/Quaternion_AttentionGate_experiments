@@ -8,6 +8,10 @@ from   imageio import imread,imwrite
 import numpy   as np
 import sys
 
+import pytorch_ssim
+import torch
+from torch.autograd import Variable
+
 from icassp_2019.utils.psnr_ssim import psnr
 
 def rgb2gray(rgb):
@@ -22,7 +26,7 @@ NUM_EPOCHS    = 1000
 LEARNING_RATE = 0.0005
 
 if MODEL == 'QCAE':
-    net  = A_QCAE()
+    net  = QCAE()
 # else:
 #     net  = CAE()
 
@@ -98,8 +102,9 @@ for epoch in range(NUM_EPOCHS):
     optimizer.step()
     
     psnr_print = psnr(output[:,1:,:,:],train[:,1:,:,:])
+    ssim_print = pytorch_ssim.ssim(train[:,1:,:,:], output[:,1:,:,:]).item()
     
-    print("epoch "+str(epoch)+", loss_train "+str(loss.cpu().item())+"psnr "+str(psnr_print))
+    print("epoch "+str(epoch)+", loss_train "+str(loss.cpu().item())+"psnr "+str(psnr_print) + "ssim "+str(ssim_print))
     # print("psnr ", psnr_print)
     
     if (epoch %100) == 0:

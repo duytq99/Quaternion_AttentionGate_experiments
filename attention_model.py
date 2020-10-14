@@ -69,9 +69,46 @@ class A_QCAE(nn.Module):
         return output
 
     def name(self):
+        return "A_QCAE"
+
+class QCAE(nn.Module):
+
+    def __init__(self):
+        super(QCAE, self).__init__()
+
+        # self.act        = nn.Hardtanh()
+        # self.output_act = nn.Hardtanh()
+        self.act        = nn.ReLU()
+
+        # ENCODER
+        self.conv1      = QuaternionConv(4, 32, kernel_size=3, stride=1, padding=1)        
+        self.conv2      = QuaternionConv(32, 64, kernel_size=3, stride=1, padding=1)
+        self.pool1      = QuaternionMaxAmpPool2d(2, 2)  
+        self.conv3      = QuaternionConv(64, 64, kernel_size=3, stride=1, padding=1)
+        
+        # DECODER      
+        self.upconv1    = QuaternionTransposeConv(64, 32, kernel_size=3, stride=2, padding=1, output_padding=1)
+        # self.attention1 = attention(32,64,32)
+        self.conv4      = QuaternionConv(64,64, kernel_size=3, stride=1, padding=1)
+        self.conv5      = QuaternionConv(64,4, kernel_size=3, stride=1, padding=1)
+        
+    def forward(self, x):
+
+        layer1 = self.act(self.conv1(x))
+        layer2 = self.pool1(self.act(self.conv2(layer1)))
+        layer3 = self.act(self.conv3(layer2))
+        layer4_1 = self.act(self.upconv1(layer3))
+        # layer4_2 = self.attention1(layer1,Upsample(layer3))
+        layer4 = torch.cat((layer4_1, layer1), axis=1)
+        layer5 = self.act(self.conv4(layer4))
+        output = self.conv5(layer5)
+
+        return output
+
+    def name(self):
         return "QCAE"
 
 if __name__ == "__main__":
     
-    model = A_QCAE()
-    summary(model, (4,512,512))
+    model = QCAE()
+    summary(model, (4,512,512),col_names=["input_size", "output_size", "num_params", "kernel_size", "mult_adds"])

@@ -13,6 +13,7 @@ import sys
 from skimage.measure import compare_ssim as ssim
 import torch
 
+
 #
 # Give the PSNR and SSIM between two given images
 #
