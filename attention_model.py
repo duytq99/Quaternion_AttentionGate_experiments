@@ -53,7 +53,7 @@ class A_QCAE(nn.Module):
         self.upconv1    = QuaternionTransposeConv(64, 32, kernel_size=3, stride=2, padding=1, output_padding=1)
         self.attention1 = attention(32,64,32)
         self.conv4      = QuaternionConv(96,64, kernel_size=3, stride=1, padding=1)
-        self.conv5      = nn.Conv2d(64,3, kernel_size=3, stride=1, padding=1)
+        self.conv5      = QuaternionConv(64,4, kernel_size=3, stride=1, padding=1)
         
     def forward(self, x):
 
