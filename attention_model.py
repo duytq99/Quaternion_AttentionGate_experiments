@@ -22,7 +22,7 @@ class attention(nn.Module):
         g1 = self.convg(g)
         
         x1 = self.convx(x)
-        print(g1.shape, x1.shape)
+        # print(g1.shape, x1.shape)
         net = g1 + x1
         net = self.relu(net)
         net = self.conv(net)
