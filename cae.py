@@ -97,7 +97,7 @@ for epoch in range(NUM_EPOCHS):
     loss.backward()
     optimizer.step()
     
-    psnr_print = psnr(output[:,0:,:,:],train[:,0:,:,:])
+    psnr_print = psnr(output[:,1:,:,:],train[:,1:,:,:])
     
     print("epoch "+str(epoch)+", loss_train "+str(loss.cpu().item())+"psnr "+str(psnr_print))
     # print("psnr ", psnr_print)
@@ -107,7 +107,7 @@ for epoch in range(NUM_EPOCHS):
         output = net(test)
         out    = output.cpu().data.numpy()
         if MODEL == 'QCAE':
-            out = np.transpose(out, (0,2,3,1))[:,:,:,0:]
+            out = np.transpose(out, (0,2,3,1))[:,:,:,1:]
             out = np.reshape(out, (out.shape[1], out.shape[2], out.shape[3]))
         else:
             out = np.transpose(out, (0,2,3,1))
