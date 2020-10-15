@@ -61,35 +61,48 @@ class A_QCAE(nn.Module):
     def __init__(self):
         super(A_QCAE, self).__init__()
 
-        # self.act        = nn.Hardtanh()
-        # self.output_act = nn.Hardtanh()
         self.act        = nn.ReLU()
+        self.output_act = nn.ReLU()
 
         # ENCODER
-        self.conv1      = QuaternionConv(4, 32, kernel_size=3, stride=1, padding=1)        
-        self.conv2      = QuaternionConv(32, 64, kernel_size=3, stride=1, padding=1)
-        self.pool1      = QuaternionMaxAmpPool2d(2, 2)  
-        self.conv3      = QuaternionConv(64, 64, kernel_size=3, stride=1, padding=1)
-        
-        # DECODER      
-        self.upconv1    = QuaternionTransposeConv(64, 32, kernel_size=3, stride=2, padding=1, output_padding=1)
-        self.attention1 = Attention(32,64,32)
-        self.conv4      = QuaternionConv(96,64, kernel_size=3, stride=1, padding=1)
-        self.conv5      = QuaternionConv(64,4, kernel_size=3, stride=1, padding=1)
-        
+        self.e1 = QuaternionConv(4, 32, kernel_size=3, stride=2, padding=1)
+        self.e2 = QuaternionConv(32, 40, kernel_size=3, stride=2, padding=1)
+        self.att = Attention(32,32,32)
+        # DECODER
+        self.d5 = QuaternionTransposeConv(40, 32, kernel_size=3, stride=2, padding=1, output_padding=1)
+        self.d6 = QuaternionTransposeConv(64, 4, kernel_size=3, stride=2, padding=1, output_padding=1)
+
+
     def forward(self, x):
 
-        layer1 = self.act(self.conv1(x))
-        layer2 = self.pool1(self.act(self.conv2(layer1)))
-        layer3 = self.act(self.conv3(layer2))
-        layer4_1 = self.act(self.upconv1(layer3))
-        layer4_2 = self.attention1(layer1,Upsample(layer3))
-        layer4 = torch.cat((layer4_1, layer4_2), axis=1)
-        layer5 = self.act(self.conv4(layer4))
-        output = self.conv5(layer5)
+        e1 = self.act(self.e1(x)) #
+        e2 = self.act(self.e2(e1))
+        
+        d5 = self.act(self.d5(e2)) #
 
-        return output
+        attention = self.att(e1,d5)
 
+        attention_r = get_r(attention)
+        attention_i = get_i(attention)
+        attention_j = get_j(attention)
+        attention_k = get_k(attention)
+
+        d5_r = get_r(d5)
+        d5_i = get_i(d5)
+        d5_j = get_j(d5)
+        d5_k = get_k(d5)
+
+        cat_r = torch.cat((attention_r,d5_r), 1)
+        cat_i = torch.cat((attention_i,d5_i), 1)
+        cat_j = torch.cat((attention_j,d5_j), 1)
+        cat_k = torch.cat((attention_k,d5_k), 1)
+
+        cat = torch.cat((cat_r,cat_i,cat_j,cat_k), 1)
+
+        d6 = self.d6(cat)
+        out = self.output_act(d6)
+
+        return out
     def name(self):
         return "A_QCAE"
 
@@ -98,32 +111,32 @@ class QCAE(nn.Module):
     def __init__(self):
         super(QCAE, self).__init__()
 
-        # self.act        = nn.Hardtanh()
-        # self.output_act = nn.Hardtanh()
         self.act        = nn.ReLU()
+        self.output_act = nn.ReLU()
 
         # ENCODER
-        self.conv1      = QuaternionConv(4, 32, kernel_size=3, stride=1, padding=1)        
-        self.conv2      = QuaternionConv(32, 64, kernel_size=3, stride=1, padding=1)
-        self.pool1      = QuaternionMaxAmpPool2d(2, 2)  
-        self.conv3      = QuaternionConv(64, 64, kernel_size=3, stride=1, padding=1)
-        
-        # DECODER      
-        self.upconv1    = QuaternionTransposeConv(64, 32, kernel_size=3, stride=2, padding=1, output_padding=1)
-        self.conv4      = QuaternionConv(64,64, kernel_size=3, stride=1, padding=1)
-        self.conv5      = QuaternionConv(64,4, kernel_size=3, stride=1, padding=1)
-        
+        self.e1 = QuaternionConv(4, 32, kernel_size=3, stride=2, padding=1)
+        self.e2 = QuaternionConv(32, 40, kernel_size=3, stride=2, padding=1)
+        # self.att = Q_Attention(32,32,32)
+        # DECODER
+        self.d5 = QuaternionTransposeConv(40, 32, kernel_size=3, stride=2, padding=1, output_padding=1)
+        self.d6 = QuaternionTransposeConv(64, 4, kernel_size=3, stride=2, padding=1, output_padding=1)
+
+
     def forward(self, x):
 
-        layer1 = self.act(self.conv1(x))
-        layer2 = self.pool1(self.act(self.conv2(layer1)))
-        layer3 = self.act(self.conv3(layer2))
-        layer4_1 = self.act(self.upconv1(layer3))
-        layer4 = torch.cat((layer4_1, layer1), axis=1)
-        layer5 = self.act(self.conv4(layer4))
-        output = self.conv5(layer5)
+        e1 = self.act(self.e1(x)) #
+        e2 = self.act(self.e2(e1))
+        
+        d5 = self.act(self.d5(e2)) #
 
-        return output
+        
+        cat = torch.cat((d5,e1), 1)
+
+        d6 = self.d6(cat)
+        out = self.output_act(d6)
+
+        return out
 
     def name(self):
         return "QCAE"
@@ -133,39 +146,53 @@ class QA_QCAE(nn.Module):
     def __init__(self):
         super(QA_QCAE, self).__init__()
 
-        # self.act        = nn.Hardtanh()
-        # self.output_act = nn.Hardtanh()
         self.act        = nn.ReLU()
+        self.output_act = nn.ReLU()
 
         # ENCODER
-        self.conv1      = QuaternionConv(4, 32, kernel_size=3, stride=1, padding=1)        
-        self.conv2      = QuaternionConv(32, 64, kernel_size=3, stride=1, padding=1)
-        self.pool1      = QuaternionMaxAmpPool2d(2, 2)  
-        self.conv3      = QuaternionConv(64, 64, kernel_size=3, stride=1, padding=1)
-        
-        # DECODER      
-        self.upconv1    = QuaternionTransposeConv(64, 32, kernel_size=3, stride=2, padding=1, output_padding=1)
-        self.attention1 = Q_Attention(32,64,32)
-        self.conv4      = QuaternionConv(96,64, kernel_size=3, stride=1, padding=1)
-        self.conv5      = QuaternionConv(64,4, kernel_size=3, stride=1, padding=1)
-        
+        self.e1 = QuaternionConv(4, 32, kernel_size=3, stride=2, padding=1)
+        self.e2 = QuaternionConv(32, 40, kernel_size=3, stride=2, padding=1)
+        self.att = Q_Attention(32,32,32)
+        # DECODER
+        self.d5 = QuaternionTransposeConv(40, 32, kernel_size=3, stride=2, padding=1, output_padding=1)
+        self.d6 = QuaternionTransposeConv(64, 4, kernel_size=3, stride=2, padding=1, output_padding=1)
+
+
     def forward(self, x):
 
-        layer1 = self.act(self.conv1(x))
-        layer2 = self.pool1(self.act(self.conv2(layer1)))
-        layer3 = self.act(self.conv3(layer2))
-        layer4_1 = self.act(self.upconv1(layer3))
-        layer4_2 = self.attention1(layer1,Upsample(layer3))
-        layer4 = torch.cat((layer4_1, layer4_2), axis=1)
-        layer5 = self.act(self.conv4(layer4))
-        output = self.conv5(layer5)
+        e1 = self.act(self.e1(x)) #
+        e2 = self.act(self.e2(e1))
+        
+        d5 = self.act(self.d5(e2)) #
 
-        return output
+        attention = self.att(e1,d5)
+
+        attention_r = get_r(attention)
+        attention_i = get_i(attention)
+        attention_j = get_j(attention)
+        attention_k = get_k(attention)
+
+        d5_r = get_r(d5)
+        d5_i = get_i(d5)
+        d5_j = get_j(d5)
+        d5_k = get_k(d5)
+
+        cat_r = torch.cat((attention_r,d5_r), 1)
+        cat_i = torch.cat((attention_i,d5_i), 1)
+        cat_j = torch.cat((attention_j,d5_j), 1)
+        cat_k = torch.cat((attention_k,d5_k), 1)
+
+        cat = torch.cat((cat_r,cat_i,cat_j,cat_k), 1)
+
+        d6 = self.d6(cat)
+        out = self.output_act(d6)
+
+        return out
 
     def name(self):
         return "QA_QCAE"
 
 if __name__ == "__main__":
     
-    model = A_QCAE()
+    model = QCAE()
     summary(model, (4,512,512),col_names=["input_size", "output_size", "num_params", "kernel_size", "mult_adds"])
